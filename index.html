@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0f172a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="POS System"/>
+  <title>POS System</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --surface: #111827;
+      --surface2: #1a2332;
+      --border: #1e3a5f;
+      --accent: #00d4ff;
+      --accent2: #0ea5e9;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --font: 'Syne', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+    /* BACKGROUND GRID */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+    }
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 36px;
+      width: 360px;
+      box-shadow: 0 0 60px rgba(0,212,255,.08);
+      animation: fadeUp .4s ease;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
+    .login-logo { text-align:center; font-size:40px; margin-bottom:8px; }
+    .login-title { text-align:center; font-size:22px; font-weight:800; color:var(--accent); margin-bottom:4px; }
+    .login-sub { text-align:center; font-size:12px; color:var(--muted); margin-bottom:28px; font-family:var(--mono); }
+    .login-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-family:var(--mono); }
+    .login-input { width:100%; padding:11px 14px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; outline:none; font-family:var(--font); margin-bottom:14px; transition:border-color .2s; }
+    .login-input:focus { border-color:var(--accent); }
+    .login-btn { width:100%; padding:13px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent2),var(--accent)); color:var(--bg); font-weight:800; font-size:15px; cursor:pointer; font-family:var(--font); margin-top:4px; transition:opacity .2s; }
+    .login-btn:hover { opacity:.9; }
+    .login-err { color:var(--red); font-size:12px; text-align:center; margin-top:8px; min-height:18px; font-family:var(--mono); }
+    .login-users { margin-top:20px; border-top:1px solid var(--border); padding-top:16px; }
+    .login-users-title { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; font-family:var(--mono); }
+    .login-user-chip { display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:5px 12px; font-size:12px; margin:3px; cursor:pointer; transition:border-color .2s; }
+    .login-user-chip:hover { border-color:var(--accent); }
+
+    /* ── APP SHELL ── */
+    #app { position:relative; z-index:1; }
+    header {
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:12px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+      position:sticky; top:0; z-index:50;
+    }
+    .logo { display:flex; align-items:center; gap:10px; }
+    .logo-icon { font-size:28px; }
+    .logo-name { font-size:18px; font-weight:800; color:var(--accent); }
+    .logo-sub { font-size:10px; color:var(--muted); font-family:var(--mono); }
+    .user-pill { display:flex; align-items:center; gap:8px; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
+    .user-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; }
+    .user-name { font-size:13px; font-weight:700; }
+    .user-role { font-size:10px; color:var(--muted); font-family:var(--mono); }
+    .logout-btn { background:none; border:1px solid var(--border); color:var(--muted); padding:4px 10px; border-radius:8px; cursor:pointer; font-size:11px; font-family:var(--font); }
+    .logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+    /* TABS */
+    nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 20px; display:flex; gap:4px; overflow-x:auto; }
+    .nav-tab { padding:12px 16px; border:none; background:none; color:var(--muted); cursor:pointer; font-family:var(--font); font-size:13px; font-weight:600; white-space:nowrap; border-bottom:2px solid transparent; transition:all .2s; }
+    .nav-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .nav-tab:hover:not(.active) { color:var(--text); }
+
+    /* MAIN */
+    main { padding:20px; max-width:1400px; margin:0 auto; }
+
+    /* PANELS */
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px; }
+    .panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+    .panel-title { font-size:16px; font-weight:800; color:var(--text); }
+
+    /* GRID */
+    .grid2 { display:grid; grid-template-columns:1fr 380px; gap:16px; align-items:start; }
+    @media(max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+
+    /* INPUTS */
+    .inp { width:100%; padding:9px 13px; border-radius:9px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px; outline:none; font-family:var(--font); transition:border-color .2s; }
+    .inp:focus { border-color:var(--accent); }
+    select.inp { cursor:pointer; }
+
+    /* PRODUCT GRID */
+    .prod-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:10px; max-height:460px; overflow-y:auto; }
+    .prod-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px 12px; cursor:pointer; text-align:left; color:var(--text); display:flex; flex-direction:column; gap:4px; transition:border-color .15s, transform .1s; }
+    .prod-card:hover { border-color:var(--accent); transform:translateY(-1px); }
+    .prod-card.no-stock { opacity:.4; cursor:not-allowed; }
+    .prod-name { font-size:13px; font-weight:700; line-height:1.3; }
+    .prod-cat { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-family:var(--mono); }
+    .prod-price { font-size:16px; font-weight:800; color:var(--accent); font-family:var(--mono); }
+    .stock-badge { font-size:10px; padding:2px 8px; border-radius:20px; font-weight:600; display:inline-block; margin-top:4px; font-family:var(--mono); }
+    .stock-ok { background:#064e3b; color:#6ee7b7; }
+    .stock-low { background:#7f1d1d; color:#fca5a5; }
+
+    /* CART */
+    .cart-list { min-height:100px; max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    .cart-empty { color:var(--muted); font-size:13px; text-align:center; padding:24px 0; font-family:var(--mono); }
+    .cart-item { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:9px; padding:9px 10px; border:1px solid var(--border); }
+    .cart-item-name { font-size:12px; font-weight:700; }
+    .cart-item-price { font-size:11px; color:var(--muted); font-family:var(--mono); }
+    .qty-ctrl { display:flex; align-items:center; gap:4px; }
+    .qty-btn { width:24px; height:24px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; }
+    .qty-num { width:22px; text-align:center; font-weight:800; font-size:13px; font-family:var(--mono); }
+    .cart-sub { font-size:13px; font-weight:800; color:var(--accent); min-width:55px; text-align:right; font-family:var(--mono); }
+    .rm-btn { background:none; border:none; color:var(--red); cursor:pointer; font-size:15px; padding:0 4px; }
+    .total-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-top:1px solid var(--border); margin-bottom:12px; }
+    .total-label { font-size:12px; color:var(--muted); font-family:var(--mono); }
+    .total-amount { font-size:24px; font-weight:800; color:var(--accent); font-family:var(--mono); }
+    .emit-btn { width:100%; padding:14px; border-radius:11px; border:none; background:linear-gradient(135deg,var(--accent2),var(--accent)); color:var(--bg); font-weight:800; font-size:15px; cursor:pointer; font-family:var(--font); transition:opacity .2s; }
+    .emit-btn:hover { opacity:.9; }
+
+    /* BUTTONS */
+    .btn { padding:8px 16px; border-radius:8px; border:none; cursor:pointer; font-family:var(--font); font-weight:700; font-size:12px; transition:opacity .2s; }
+    .btn:hover { opacity:.85; }
+    .btn-primary { background:var(--accent); color:var(--bg); }
+    .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn-danger { background:transparent; border:1px solid var(--red); color:var(--red); }
+    .btn-edit { background:transparent; border:1px solid var(--accent); color:var(--accent); }
+
+    /* TABLE */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    th { padding:10px 14px; background:var(--bg); color:var(--muted); font-size:11px; text-align:left; text-transform:uppercase; letter-spacing:.5px; font-family:var(--mono); border-bottom:1px solid var(--border); }
+    td { padding:11px 14px; font-size:13px; border-bottom:1px solid rgba(30,58,95,.3); }
+    tr:hover td { background:rgba(0,212,255,.02); }
+    .cat-tag { background:#1e3a5f; color:#7dd3fc; padding:2px 9px; border-radius:12px; font-size:10px; font-weight:700; font-family:var(--mono); }
+
+    /* FORM */
+    .form-box { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; animation:fadeUp .25s; }
+    .form-title { font-weight:800; margin-bottom:14px; color:var(--accent); font-size:14px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media(max-width:500px){ .form-grid { grid-template-columns:1fr; } }
+    .form-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; font-family:var(--mono); }
+    .form-actions { display:flex; gap:8px; margin-top:12px; }
+
+    /* SUMMARY CARDS */
+    .summary-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+    .summary-card { flex:1; min-width:120px; background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+    .summary-num { font-size:22px; font-weight:800; color:var(--accent); font-family:var(--mono); }
+    .summary-lbl { font-size:10px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; font-family:var(--mono); }
+
+    /* TICKETS */
+    .ticket-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; cursor:pointer; transition:border-color .15s; }
+    .ticket-card:hover { border-color:var(--accent); }
+    .ticket-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .ticket-id { font-weight:800; font-size:14px; }
+    .ticket-date { font-size:10px; color:var(--muted); font-family:var(--mono); }
+    .ticket-client { font-size:12px; color:var(--muted); margin-bottom:4px; }
+    .ticket-items { font-size:11px; color:var(--muted); margin-bottom:6px; font-family:var(--mono); }
+    .ticket-total { font-weight:800; font-size:16px; color:var(--accent); font-family:var(--mono); }
+    .ticket-user { font-size:10px; color:var(--yellow); font-family:var(--mono); margin-top:4px; }
+
+    /* ACTIVITY LOG */
+    .log-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(30,58,95,.3); }
+    .log-dot { width:8px; height:8px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+    .log-time { font-size:10px; color:var(--muted); font-family:var(--mono); white-space:nowrap; }
+    .log-msg { font-size:12px; flex:1; }
+    .log-user { font-size:10px; color:var(--accent); font-family:var(--mono); }
+
+    /* USERS PANEL (admin) */
+    .user-card { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .user-card-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex-shrink:0; }
+    .user-card-name { font-weight:800; font-size:14px; }
+    .user-card-role { font-size:11px; font-family:var(--mono); }
+    .role-admin { color:var(--yellow); }
+    .role-vendedor { color:var(--green); }
+    .badge-online { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green); margin-right:4px; }
+
+    /* RECEIPT MODAL */
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px; }
+    .receipt { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:28px; width:100%; max-width:340px; box-shadow:0 20px 60px rgba(0,0,0,.5); animation:fadeUp .25s; }
+    .receipt-title { font-size:18px; font-weight:800; text-align:center; color:var(--accent); margin-bottom:2px; }
+    .receipt-shop { text-align:center; font-size:13px; color:var(--muted); }
+    .receipt-info { text-align:center; font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:10px; }
+    .hr { border:none; border-top:1px dashed var(--border); margin:10px 0; }
+    .receipt-item { display:flex; justify-content:space-between; font-size:13px; margin-bottom:7px; font-family:var(--mono); }
+    .receipt-total { display:flex; justify-content:space-between; font-weight:800; font-size:17px; color:var(--accent); margin-top:4px; font-family:var(--mono); }
+    .receipt-thanks { text-align:center; font-size:11px; color:var(--muted); margin-top:12px; }
+    .close-btn { width:100%; margin-top:16px; padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg,var(--accent2),var(--accent)); color:var(--bg); font-weight:800; cursor:pointer; font-family:var(--font); font-size:14px; }
+
+    /* NOTIFICATION */
+    #notif { position:fixed; top:16px; right:16px; z-index:999; padding:10px 18px; border-radius:10px; color:#fff; font-weight:700; font-size:13px; box-shadow:0 4px 20px rgba(0,0,0,.4); display:none; animation:fadeUp .25s; font-family:var(--font); }
+
+    /* INSTALL BANNER */
+    #install-banner { display:none; position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--accent); border-radius:14px; padding:12px 20px; z-index:300; box-shadow:0 8px 30px rgba(0,212,255,.15); text-align:center; }
+    .install-text { font-size:13px; margin-bottom:8px; }
+    .install-btns { display:flex; gap:8px; justify-content:center; }
+
+    /* SCROLLBARS */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+  </style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <div class="install-text">📲 ¡Instala POS System en tu dispositivo!</div>
+  <div class="install-btns">
+    <button class="btn btn-primary" id="install-btn">Instalar App</button>
+    <button class="btn btn-outline" id="install-dismiss">Ahora no</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🛒</div>
+    <div class="login-title">POS System</div>
+    <div class="login-sub">Control de Inventario & Ventas</div>
+    <div class="login-label">Usuario</div>
+    <input class="login-input" id="login-user" placeholder="Nombre de usuario" autocomplete="username"/>
+    <div class="login-label">Contraseña</div>
+    <input class="login-input" id="login-pass" placeholder="••••••••" type="password" autocomplete="current-password"/>
+    <button class="login-btn" id="login-btn">Ingresar →</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-users">
+      <div class="login-users-title">Usuarios registrados</div>
+      <div id="user-chips"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🛒</span>
+      <div>
+        <div class="logo-name">POS System</div>
+        <div class="logo-sub">INVENTARIO & VENTAS</div>
+      </div>
+    </div>
+    <div class="user-pill">
+      <div class="user-avatar" id="hdr-avatar"></div>
+      <div>
+        <div class="user-name" id="hdr-name"></div>
+        <div class="user-role" id="hdr-role"></div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+  <nav id="main-nav"></nav>
+  <main id="main-content"></main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STORAGE HELPERS
+// ══════════════════════════════════════════════
+const DB = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+// ══════════════════════════════════════════════
+// INITIAL DATA SEED
+// ══════════════════════════════════════════════
+function seed() {
+  if (!DB.get('users')) {
+    DB.set('users', [
+      { id:1, username:'admin', password:'admin123', role:'admin', color:'#00d4ff', avatar:'A' },
+      { id:2, username:'vendedor', password:'venta123', role:'vendedor', color:'#10b981', avatar:'V' },
+    ]);
+  }
+  if (!DB.get('products')) {
+    DB.set('products', [
+      { id:1, name:'Coca-Cola 500ml', price:1500, stock:50, category:'Bebidas' },
+      { id:2, name:'Pan Molde', price:2200, stock:30, category:'Panadería' },
+      { id:3, name:'Leche 1L', price:1800, stock:25, category:'Lácteos' },
+    ]);
+  }
+  if (!DB.get('tickets')) DB.set('tickets', []);
+  if (!DB.get('activity')) DB.set('activity', []);
+  if (!DB.get('nextProdId')) DB.set('nextProdId', 4);
+  if (!DB.get('nextTicketId')) DB.set('nextTicketId', 1);
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+const fmt = n => '$' + Number(n).toLocaleString('es-CL');
+const ts = () => new Date().toLocaleString('es-CL');
+
+function notify(msg, type='success') {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.style.background = type === 'error' ? '#ef4444' : type === 'warn' ? '#f59e0b' : '#10b981';
+  el.style.display = 'block';
+  clearTimeout(window._nt);
+  window._nt = setTimeout(() => el.style.display = 'none', 2800);
+}
+
+function logActivity(msg, color='#00d4ff') {
+  const logs = DB.get('activity') || [];
+  logs.unshift({ msg, user: currentUser.username, time: ts(), color });
+  if (logs.length > 200) logs.length = 200;
+  DB.set('activity', logs);
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+let currentUser = null;
+
+function renderLoginChips() {
+  const users = DB.get('users') || [];
+  document.getElementById('user-chips').innerHTML = users.map(u =>
+    `<span class="login-user-chip" onclick="quickLogin('${u.username}')">
+      <span style="color:${u.color}">${u.avatar}</span> ${u.username}
+      <span style="font-size:9px;color:#64748b;font-family:var(--mono)">${u.role}</span>
+    </span>`
+  ).join('');
+}
+
+function quickLogin(username) {
+  document.getElementById('login-user').value = username;
+  document.getElementById('login-pass').focus();
+}
+
+function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const users = DB.get('users') || [];
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) {
+    document.getElementById('login-err').textContent = 'Usuario o contraseña incorrectos';
+    return;
+  }
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hdr-avatar').textContent = user.avatar;
+  document.getElementById('hdr-avatar').style.background = user.color + '22';
+  document.getElementById('hdr-avatar').style.color = user.color;
+  document.getElementById('hdr-name').textContent = user.username;
+  document.getElementById('hdr-role').textContent = user.role.toUpperCase();
+  logActivity(`Inició sesión`, '#10b981');
+  buildNav();
+  showTab('caja');
+}
+
+function logout() {
+  logActivity(`Cerró sesión`, '#ef4444');
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+  renderLoginChips();
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+let currentTab = 'caja';
+
+function buildNav() {
+  const tabs = [
+    { id:'caja', label:'🏪 Caja' },
+    { id:'inventario', label:'📦 Inventario' },
+    { id:'historial', label:'🧾 Historial' },
+    { id:'actividad', label:'📋 Actividad' },
+  ];
+  if (currentUser.role === 'admin') tabs.push({ id:'usuarios', label:'👥 Usuarios' });
+  document.getElementById('main-nav').innerHTML = tabs.map(t =>
+    `<button class="nav-tab${currentTab===t.id?' active':''}" onclick="showTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+
+function showTab(tab) {
+  currentTab = tab;
+  buildNav();
+  const c = document.getElementById('main-content');
+  if (tab === 'caja') c.innerHTML = renderCaja();
+  else if (tab === 'inventario') c.innerHTML = renderInventario();
+  else if (tab === 'historial') c.innerHTML = renderHistorial();
+  else if (tab === 'actividad') c.innerHTML = renderActividad();
+  else if (tab === 'usuarios') c.innerHTML = renderUsuarios();
+  attachEvents(tab);
+}
+
+// ══════════════════════════════════════════════
+// CAJA
+// ══════════════════════════════════════════════
+let cart = [];
+
+function renderCaja() {
+  const products = DB.get('products') || [];
+  const search = window._cajaSearch || '';
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.category||'').toLowerCase().includes(search.toLowerCase())
+  );
+  return `
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Productos</span>
+        <input class="inp" id="caja-search" placeholder="🔍 Buscar producto..." value="${search}" style="width:200px" oninput="window._cajaSearch=this.value;refreshCajaProducts()"/>
+      </div>
+      <div class="prod-grid" id="prod-grid">
+        ${filtered.map(p => `
+          <button class="prod-card${p.stock===0?' no-stock':''}" onclick="addToCart(${p.id})" ${p.stock===0?'disabled':''}>
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-cat">${p.category||''}</div>
+            <div class="prod-price">${fmt(p.price)}</div>
+            <div class="stock-badge ${p.stock<5?'stock-low':'stock-ok'}">Stock: ${p.stock}</div>
+          </button>`).join('')}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Carrito</span>
+        <select class="inp" id="ticket-type" style="width:130px">
+          <option value="boleta">📄 Boleta</option>
+          <option value="ticket">🎫 Ticket</option>
+        </select>
+      </div>
+      <input class="inp" id="client-name" placeholder="Nombre cliente (opcional)" style="margin-bottom:12px"/>
+      <div class="cart-list" id="cart-list">${renderCartItems()}</div>
+      <div class="total-row">
+        <span class="total-label">TOTAL</span>
+        <span class="total-amount" id="cart-total">${fmt(cartTotal())}</span>
+      </div>
+      <button class="emit-btn" onclick="emitTicket()">Emitir documento →</button>
+    </div>
+  </div>`;
+}
+
+function renderCartItems() {
+  if (cart.length === 0) return '<div class="cart-empty">Toca un producto para agregarlo</div>';
+  return cart.map(item => `
+    <div class="cart-item">
+      <div style="flex:1">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${fmt(item.price)} c/u</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+        <span class="qty-num">${item.qty}</span>
+        <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+      </div>
+      <span class="cart-sub">${fmt(item.price*item.qty)}</span>
+      <button class="rm-btn" onclick="removeFromCart(${item.id})">✕</button>
+    </div>`).join('');
+}
+
+function cartTotal() { return cart.reduce((s,i) => s+i.price*i.qty, 0); }
+
+function refreshCart() {
+  const cl = document.getElementById('cart-list');
+  const ct = document.getElementById('cart-total');
+  if (cl) cl.innerHTML = renderCartItems();
+  if (ct) ct.textContent = fmt(cartTotal());
+}
+
+function refreshCajaProducts() {
+  const products = DB.get('products') || [];
+  const search = window._cajaSearch || '';
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.category||'').toLowerCase().includes(search.toLowerCase())
+  );
+  const grid = document.getElementById('prod-grid');
+  if (grid) grid.innerHTML = filtered.map(p => `
+    <button class="prod-card${p.stock===0?' no-stock':''}" onclick="addToCart(${p.id})" ${p.stock===0?'disabled':''}>
+      <div class="prod-name">${p.name}</div>
+      <div class="prod-cat">${p.category||''}</div>
+      <div class="prod-price">${fmt(p.price)}</div>
+      <div class="stock-badge ${p.stock<5?'stock-low':'stock-ok'}">Stock: ${p.stock}</div>
+    </button>`).join('');
+}
+
+function addToCart(id) {
+  const products = DB.get('products') || [];
+  const prod = products.find(p => p.id === id);
+  if (!prod || prod.stock <= 0) { notify('Sin stock disponible','error'); return; }
+  const ex = cart.find(i => i.id === id);
+  if (ex) {
+    if (ex.qty >= prod.stock) { notify('Stock insuficiente','warn'); return; }
+    ex.qty++;
+  } else {
+    cart.push({ ...prod, qty:1 });
+  }
+  refreshCart();
+}
+
+function removeFromCart(id) { cart = cart.filter(i => i.id !== id); refreshCart(); }
+
+function changeQty(id, delta) {
+  const products = DB.get('products') || [];
+  const prod = products.find(p => p.id === id);
+  cart = cart.map(i => {
+    if (i.id !== id) return i;
+    const nq = i.qty + delta;
+    if (nq < 1) return i;
+    if (nq > prod.stock) { notify('Stock insuficiente','warn'); return i; }
+    return { ...i, qty:nq };
+  });
+  refreshCart();
+}
+
+function emitTicket() {
+  if (cart.length === 0) { notify('Agrega productos al carrito','error'); return; }
+  const type = document.getElementById('ticket-type')?.value || 'boleta';
+  const client = document.getElementById('client-name')?.value || 'Cliente';
+  const tickets = DB.get('tickets') || [];
+  let tid = DB.get('nextTicketId') || 1;
+  const ticket = { id:tid, type, client, items:[...cart], total:cartTotal(), date:ts(), user:currentUser.username };
+  tickets.unshift(ticket);
+  DB.set('tickets', tickets);
+  DB.set('nextTicketId', tid+1);
+
+  // Discount stock
+  const products = DB.get('products') || [];
+  cart.forEach(ci => {
+    const p = products.find(x => x.id === ci.id);
+    if (p) p.stock -= ci.qty;
+  });
+  DB.set('products', products);
+
+  const itemsStr = cart.map(i=>`${i.name} x${i.qty}`).join(', ');
+  logActivity(`Emitió ${type} #${tid} — ${fmt(cartTotal())} — ${itemsStr}`, '#00d4ff');
+
+  cart = [];
+  window._receipt = ticket;
+  showReceipt(ticket);
+  refreshCajaProducts();
+  notify(`${type==='boleta'?'Boleta':'Ticket'} #${tid} emitida ✓`);
+}
+
+// ══════════════════════════════════════════════
+// INVENTARIO
+// ══════════════════════════════════════════════
+let editingProd = null;
+
+function renderInventario() {
+  const products = DB.get('products') || [];
+  const totalStock = products.reduce((s,p) => s+p.stock, 0);
+  const totalValue = products.reduce((s,p) => s+p.price*p.stock, 0);
+  return `
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Inventario de Productos</span>
+      <button class="btn btn-primary" onclick="openProdForm()">+ Agregar Producto</button>
+    </div>
+    <div id="prod-form-container"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th>
+        </tr></thead>
+        <tbody>
+          ${products.map(p => `
+          <tr>
+            <td style="color:var(--muted);font-family:var(--mono)">${p.id}</td>
+            <td style="font-weight:700">${p.name}</td>
+            <td><span class="cat-tag">${p.category||'—'}</span></td>
+            <td style="font-family:var(--mono);color:var(--accent)">${fmt(p.price)}</td>
+            <td style="font-family:var(--mono);font-weight:800;color:${p.stock<5?'var(--red)':'var(--green)'}">${p.stock}</td>
+            <td>
+              <button class="btn btn-edit" style="margin-right:6px" onclick="openProdForm(${p.id})">Editar</button>
+              <button class="btn btn-danger" onclick="deleteProd(${p.id})">Eliminar</button>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="summary-row">
+      <div class="summary-card"><div class="summary-num">${products.length}</div><div class="summary-lbl">Productos</div></div>
+      <div class="summary-card"><div class="summary-num">${totalStock}</div><div class="summary-lbl">Unidades</div></div>
+      <div class="summary-card"><div class="summary-num">${fmt(totalValue)}</div><div class="summary-lbl">Valor inventario</div></div>
+    </div>
+  </div>`;
+}
+
+function openProdForm(id) {
+  const products = DB.get('products') || [];
+  const p = id ? products.find(x => x.id === id) : null;
+  editingProd = id || null;
+  const fc = document.getElementById('prod-form-container');
+  fc.innerHTML = `
+    <div class="form-box">
+      <div class="form-title">${p ? 'Editar Producto' : 'Nuevo Producto'}</div>
+      <div class="form-grid">
+        <div><div class="form-label">Nombre</div><input class="inp" id="f-name" value="${p?p.name:''}"/></div>
+        <div><div class="form-label">Precio</div><input class="inp" id="f-price" type="number" value="${p?p.price:''}"/></div>
+        <div><div class="form-label">Stock</div><input class="inp" id="f-stock" type="number" value="${p?p.stock:''}"/></div>
+        <div><div class="form-label">Categoría</div><input class="inp" id="f-cat" value="${p?p.category:''}"/></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveProd()">Guardar</button>
+        <button class="btn btn-outline" onclick="document.getElementById('prod-form-container').innerHTML=''">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function saveProd() {
+  const name = document.getElementById('f-name').value.trim();
+  const price = +document.getElementById('f-price').value;
+  const stock = +document.getElementById('f-stock').value;
+  const category = document.getElementById('f-cat').value.trim();
+  if (!name || !price || stock === '') { notify('Completa todos los campos','error'); return; }
+  const products = DB.get('products') || [];
+  if (editingProd) {
+    const i = products.findIndex(p => p.id === editingProd);
+    products[i] = { ...products[i], name, price, stock, category };
+    logActivity(`Editó producto: ${name}`, '#f59e0b');
+    notify('Producto actualizado');
+  } else {
+    let nid = DB.get('nextProdId') || 4;
+    products.push({ id:nid, name, price, stock, category });
+    DB.set('nextProdId', nid+1);
+    logActivity(`Agregó producto: ${name}`, '#10b981');
+    notify('Producto agregado');
+  }
+  DB.set('products', products);
+  showTab('inventario');
+}
+
+function deleteProd(id) {
+  if (!confirm('¿Eliminar este producto?')) return;
+  const products = DB.get('products') || [];
+  const p = products.find(x => x.id === id);
+  DB.set('products', products.filter(x => x.id !== id));
+  logActivity(`Eliminó producto: ${p?.name}`, '#ef4444');
+  notify('Producto eliminado');
+  showTab('inventario');
+}
+
+// ══════════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════════
+function renderHistorial() {
+  const tickets = DB.get('tickets') || [];
+  const totalSales = tickets.reduce((s,t) => s+t.total, 0);
+  return `
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Historial de Ventas</span>
+      <span style="font-family:var(--mono);color:var(--accent);font-weight:800">${fmt(totalSales)}</span>
+    </div>
+    ${tickets.length === 0 ? '<div class="cart-empty">Aún no hay ventas registradas.</div>' : ''}
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${tickets.map(t => `
+        <div class="ticket-card" onclick="showReceipt(${JSON.stringify(t).replace(/"/g,'&quot;')})">
+          <div class="ticket-head">
+            <span class="ticket-id">${t.type==='boleta'?'📄':'🎫'} #${t.id} — ${t.type.toUpperCase()}</span>
+            <span class="ticket-date">${t.date}</span>
+          </div>
+          <div class="ticket-client">👤 ${t.client}</div>
+          <div class="ticket-items">${t.items.map(i=>`${i.name} x${i.qty}`).join(' · ')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="ticket-total">${fmt(t.total)}</span>
+            <span class="ticket-user">👤 ${t.user||'—'}</span>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// ACTIVIDAD
+// ══════════════════════════════════════════════
+function renderActividad() {
+  const logs = DB.get('activity') || [];
+  return `
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Registro de Actividad</span>
+      ${currentUser.role==='admin'?'<button class="btn btn-danger" onclick="clearLogs()">Limpiar</button>':''}
+    </div>
+    ${logs.length===0?'<div class="cart-empty">Sin actividad registrada.</div>':''}
+    <div style="max-height:600px;overflow-y:auto">
+      ${logs.map(l => `
+        <div class="log-item">
+          <div class="log-dot" style="background:${l.color||'#00d4ff'}"></div>
+          <div style="flex:1">
+            <div class="log-msg">${l.msg}</div>
+            <div class="log-user">👤 ${l.user}</div>
+          </div>
+          <div class="log-time">${l.time}</div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function clearLogs() {
+  if (!confirm('¿Limpiar el registro de actividad?')) return;
+  DB.set('activity', []);
+  showTab('actividad');
+  notify('Registro limpiado');
+}
+
+// ══════════════════════════════════════════════
+// USUARIOS (admin only)
+// ══════════════════════════════════════════════
+function renderUsuarios() {
+  const users = DB.get('users') || [];
+  return `
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Gestión de Usuarios</span>
+      <button class="btn btn-primary" onclick="openUserForm()">+ Nuevo Usuario</button>
+    </div>
+    <div id="user-form-container"></div>
+    ${users.map(u => `
+      <div class="user-card">
+        <div class="user-card-avatar" style="background:${u.color}22;color:${u.color}">${u.avatar}</div>
+        <div style="flex:1">
+          <div class="user-card-name">${u.username}</div>
+          <div class="user-card-role ${u.role==='admin'?'role-admin':'role-vendedor'}">${u.role.toUpperCase()}</div>
+        </div>
+        ${u.id !== currentUser.id ? `
+          <button class="btn btn-danger" onclick="deleteUser(${u.id})">Eliminar</button>` : `
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">(tú)</span>`}
+      </div>`).join('')}
+  </div>`;
+}
+
+function openUserForm() {
+  document.getElementById('user-form-container').innerHTML = `
+    <div class="form-box">
+      <div class="form-title">Nuevo Usuario</div>
+      <div class="form-grid">
+        <div><div class="form-label">Usuario</div><input class="inp" id="u-username"/></div>
+        <div><div class="form-label">Contraseña</div><input class="inp" id="u-pass" type="password"/></div>
+        <div><div class="form-label">Rol</div>
+          <select class="inp" id="u-role">
+            <option value="vendedor">Vendedor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div><div class="form-label">Color (hex)</div><input class="inp" id="u-color" value="#10b981"/></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveUser()">Guardar</button>
+        <button class="btn btn-outline" onclick="document.getElementById('user-form-container').innerHTML=''">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function saveUser() {
+  const username = document.getElementById('u-username').value.trim();
+  const password = document.getElementById('u-pass').value;
+  const role = document.getElementById('u-role').value;
+  const color = document.getElementById('u-color').value || '#10b981';
+  if (!username || !password) { notify('Completa usuario y contraseña','error'); return; }
+  const users = DB.get('users') || [];
+  if (users.find(u => u.username === username)) { notify('Ese usuario ya existe','error'); return; }
+  const nid = Math.max(...users.map(u=>u.id)) + 1;
+  users.push({ id:nid, username, password, role, color, avatar:username[0].toUpperCase() });
+  DB.set('users', users);
+  logActivity(`Creó usuario: ${username} (${role})`, '#f59e0b');
+  notify('Usuario creado');
+  showTab('usuarios');
+}
+
+function deleteUser(id) {
+  if (!confirm('¿Eliminar este usuario?')) return;
+  const users = DB.get('users') || [];
+  const u = users.find(x => x.id === id);
+  DB.set('users', users.filter(x => x.id !== id));
+  logActivity(`Eliminó usuario: ${u?.username}`, '#ef4444');
+  notify('Usuario eliminado');
+  showTab('usuarios');
+}
+
+// ══════════════════════════════════════════════
+// RECEIPT MODAL
+// ══════════════════════════════════════════════
+function showReceipt(ticket) {
+  // ticket may be a stringified object from onclick attribute
+  if (typeof ticket === 'string') {
+    try { ticket = JSON.parse(ticket); } catch { return; }
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="receipt" onclick="event.stopPropagation()">
+      <div class="receipt-title">${ticket.type==='boleta'?'📄 BOLETA':'🎫 TICKET'} #${ticket.id}</div>
+      <div class="receipt-shop">🛒 POS System</div>
+      <div class="receipt-info">${ticket.date} · ${ticket.user||''}</div>
+      <div class="receipt-info">Cliente: ${ticket.client}</div>
+      <div class="hr"></div>
+      ${ticket.items.map(i=>`
+        <div class="receipt-item">
+          <span>${i.name} x${i.qty}</span>
+          <span>${fmt(i.price*i.qty)}</span>
+        </div>`).join('')}
+      <div class="hr"></div>
+      <div class="receipt-total"><span>TOTAL</span><span>${fmt(ticket.total)}</span></div>
+      <div class="receipt-thanks">¡Gracias por su compra!</div>
+      <button class="close-btn" onclick="this.closest('.overlay').remove()">Cerrar</button>
+    </div>`;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+}
+
+// ══════════════════════════════════════════════
+// ATTACH EVENTS
+// ══════════════════════════════════════════════
+function attachEvents(tab) {
+  // Enter key on login
+}
+
+// ══════════════════════════════════════════════
+// PWA INSTALL
+// ══════════════════════════════════════════════
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'block';
+});
+document.getElementById('install-btn').onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').style.display = 'none';
+};
+document.getElementById('install-dismiss').onclick = () => {
+  document.getElementById('install-banner').style.display = 'none';
+};
+
+// ══════════════════════════════════════════════
+// LOGIN EVENTS
+// ══════════════════════════════════════════════
+document.getElementById('login-btn').onclick = doLogin;
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('login-pass').focus(); });
+
+// ══════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════
+seed();
+renderLoginChips();
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
